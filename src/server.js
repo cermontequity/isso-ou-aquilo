@@ -9,7 +9,8 @@ import { errorHandler } from './middlewares/errorHandler.js';
 const app = express();
 const publicDir = fileURLToPath(new URL('../public', import.meta.url));
 
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+// CORS_ORIGIN aceita várias origens separadas por vírgula
+app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') }));
 app.use(express.json());
 app.use(express.static(publicDir));
 

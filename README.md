@@ -28,7 +28,7 @@ npm run dev               # http://localhost:3000
 | `DIRECT_URL` | Conexão direta (porta 5432), usada pelas migrations |
 | `JWT_SECRET` | Segredo para assinar os tokens |
 | `PORT` | Porta da API |
-| `CORS_ORIGIN` | Origem permitida no CORS |
+| `CORS_ORIGIN` | Origens permitidas no CORS, separadas por vírgula (ex.: `http://localhost:3000,http://localhost:3001`) |
 
 ## Arquitetura
 
