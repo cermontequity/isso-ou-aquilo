@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Isso ou Aquilo</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<main>
+  <h1><span class="a">Isso</span> ou <span class="b">Aquilo</span></h1>
+  <p class="muted">Duas opções, voto anônimo, resultado só no fim.</p>
+
+  <!-- Login / Cadastro -->
+  <section id="auth" class="card">
+    <form id="authForm">
+      <input id="name" placeholder="Seu nome" class="hidden" />
+      <input id="email" type="email" placeholder="Email" required />
+      <input id="password" type="password" placeholder="Senha" required />
+      <button id="authBtn">Entrar</button>
+      <p class="error" id="authError"></p>
+      <button type="button" class="link" id="toggleAuth">Não tem conta? Cadastre-se</button>
+    </form>
+  </section>
+
+  <!-- Painel do criador -->
+  <section id="panel" class="hidden">
+    <div class="row" style="margin-top:20px">
+      <span id="hello"></span>
+      <button class="ghost" id="logout" style="flex:0">Sair</button>
+    </div>
+
+    <div class="card">
+      <form id="pollForm">
+        <input name="question" placeholder="Pergunta (ex: Onde almoçamos?)" required />
+        <div class="row">
+          <input name="optionA" placeholder="Opção A" required />
+          <input name="optionB" placeholder="Opção B" required />
+        </div>
+        <div class="row">
+          <select name="duration">
+            <option value="5">5 minutos</option>
+            <option value="10">10 minutos</option>
+            <option value="15">15 minutos</option>
+            <option value="30">30 minutos</option>
+            <option value="60">60 minutos</option>
+          </select>
+          <button>Criar votação</button>
+        </div>
+        <p class="error" id="pollError"></p>
+      </form>
+    </div>
+
+    <div id="polls"></div>
+  </section>
+</main>
+
+<script src="/common.js"></script>
+<script>
+  let token = localStorage.getItem('token');
+  let isRegister = false;
+  const $ = (id) => document.getElementById(id);
+
+  function showPanel() {
+    $('auth').classList.toggle('hidden', !!token);
+    $('panel').classList.toggle('hidden', !token);
+    if (token) {
+      $('hello').textContent = `Olá, ${localStorage.getItem('name')}`;
+      loadPolls();
+    }
+  }
+
+  $('toggleAuth').onclick = () => {
+    isRegister = !isRegister;
+    $('name').classList.toggle('hidden', !isRegister);
+    $('authBtn').textContent = isRegister ? 'Cadastrar' : 'Entrar';
+    $('toggleAuth').textContent = isRegister ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastre-se';
+  };
+
+  $('authForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const body = { email: $('email').value, password: $('password').value };
+    if (isRegister) body.name = $('name').value;
+    try {
+      const data = await api(`/auth/${isRegister ? 'register' : 'login'}`, { method: 'POST', body });
+      token = data.token;
+      localStorage.setItem('token', token);
+      localStorage.setItem('name', data.user.name);
+      $('authError').textContent = '';
+      showPanel();
+    } catch (err) {
+      $('authError').textContent = err.message;
+    }
+  };
+
+  $('logout').onclick = () => {
+    localStorage.removeItem('token');
+    token = null;
+    showPanel();
+  };
+
+  $('pollForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = Object.fromEntries(new FormData(e.target));
+    try {
+      await api('/polls', { method: 'POST', token, body: { ...form, duration: Number(form.duration) } });
+      e.target.reset();
+      $('pollError').textContent = '';
+      loadPolls();
+    } catch (err) {
+      $('pollError').textContent = err.message;
+    }
+  };
+
+  async function loadPolls() {
+    try {
+      const polls = await api('/polls', { token });
+      $('polls').innerHTML = polls.map(pollHtml).join('') || '<p class="muted card">Nenhuma votação ainda.</p>';
+    } catch (err) {
+      if (err.status === 401) $('logout').click(); // token expirou
+    }
+  }
+
+  function pollHtml(p) {
+    const link = `${location.origin}/v/${p.slug}`;
+    return `
+      <div class="card poll">
+        <h3>${esc(p.question)}</h3>
+        <p class="muted">${esc(p.optionA)} <strong>ou</strong> ${esc(p.optionB)}</p>
+        ${p.closed
+          ? resultHtml(p)
+          : `<p>⏳ <strong data-expires="${p.expiresAt}">${timeLeft(p.expiresAt)}</strong> · ${p.totalVotes} voto(s) · resultado secreto até o fim</p>`}
+        <div class="actions">
+          ${p.closed ? '' : `<button onclick="copyLink('${link}', this)">Copiar link</button><button class="ghost" onclick="window.open('${link}')">Abrir</button>`}
+          <button class="ghost" onclick="removePoll(${p.id})">Excluir</button>
+        </div>
+      </div>`;
+  }
+
+  async function copyLink(link, btn) {
+    try {
+      await navigator.clipboard.writeText(link);
+      btn.textContent = 'Copiado!';
+    } catch {
+      prompt('Copie o link:', link); // clipboard só funciona em https/localhost
+    }
+  }
+
+  async function removePoll(id) {
+    if (!confirm('Excluir esta votação?')) return;
+    await api(`/polls/${id}`, { method: 'DELETE', token });
+    loadPolls();
+  }
+
+  // Relógio local a cada 1s; recarrega do servidor a cada 5s (contagem de votos)
+  setInterval(() => {
+    document.querySelectorAll('[data-expires]').forEach((el) => {
+      el.textContent = timeLeft(el.dataset.expires);
+      if (el.textContent === '00:00') loadPolls();
+    });
+  }, 1000);
+  setInterval(() => token && loadPolls(), 5000);
+
+  showPanel();
+</script>
+</body>
+</html>

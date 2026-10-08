@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Isso ou Aquilo · Votar</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<main class="center">
+  <h1><span class="a">Isso</span> ou <span class="b">Aquilo</span></h1>
+  <div id="app" class="muted">Carregando...</div>
+</main>
+
+<script src="/common.js"></script>
+<script>
+  const slug = location.pathname.split('/').pop();
+  const app = document.getElementById('app');
+
+  // Token anônimo por votação: impede votar duas vezes sem identificar ninguém.
+  // getRandomValues funciona mesmo sem https (ex: celular acessando pelo IP da rede)
+  const tokenKey = `voter:${slug}`;
+  if (!localStorage.getItem(tokenKey)) {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    localStorage.setItem(tokenKey, Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''));
+  }
+  const voterToken = localStorage.getItem(tokenKey);
+  const votedKey = `voted:${slug}`;
+
+  let poll;
+
+  async function load() {
+    try {
+      poll = await api(`/p/${slug}`);
+      render();
+    } catch (err) {
+      app.innerHTML = `<div class="card">${esc(err.message)}</div>`;
+    }
+  }
+
+  function render() {
+    const head = `<h2>${esc(poll.question)}</h2>`;
+
+    if (poll.closed) {
+      app.innerHTML = `<div class="card" style="text-align:left">${head}${resultHtml(poll)}</div>`;
+      return;
+    }
+
+    if (localStorage.getItem(votedKey)) {
+      app.innerHTML = `
+        <div class="card">${head}
+          <p>Voto registrado ✅ Ninguém sabe o que você escolheu.</p>
+          <p class="muted">O resultado aparece em</p>
+          <div class="timer" data-expires="${poll.expiresAt}">${timeLeft(poll.expiresAt)}</div>
+        </div>`;
+      return;
+    }
+
+    app.innerHTML = `
+      ${head}
+      <p class="muted">Termina em <strong data-expires="${poll.expiresAt}">${timeLeft(poll.expiresAt)}</strong></p>
+      <div class="versus">
+        <button class="choice a" onclick="vote('A')">${esc(poll.optionA)}</button>
+        <span class="or">OU</span>
+        <button class="choice b" onclick="vote('B')">${esc(poll.optionB)}</button>
+      </div>
+      <p class="error" id="voteError"></p>`;
+  }
+
+  async function vote(choice) {
+    try {
+      await api(`/p/${slug}/vote`, { method: 'POST', body: { choice, voterToken } });
+      localStorage.setItem(votedKey, '1');
+    } catch (err) {
+      if (err.status === 409) localStorage.setItem(votedKey, '1'); // já tinha votado
+      else return (document.getElementById('voteError').textContent = err.message);
+    }
+    render();
+  }
+
+  // Contagem regressiva; ao zerar busca o resultado
+  setInterval(() => {
+    document.querySelectorAll('[data-expires]').forEach((el) => {
+      el.textContent = timeLeft(el.dataset.expires);
+      if (el.textContent === '00:00') setTimeout(load, 1000);
+    });
+  }, 1000);
+
+  load();
+</script>
+</body>
+</html>
