@@ -3,7 +3,6 @@ import { AppError } from '../lib/AppError.js';
 
 export const isClosed = (poll) => poll.expiresAt <= new Date();
 
-// Lê os votos da votação e calcula porcentagens e vencedor
 export async function getResult(poll) {
   const groups = await prisma.vote.groupBy({ by: ['choice'], where: { pollId: poll.id }, _count: true });
   const a = groups.find((g) => g.choice === 'A')?._count ?? 0;
@@ -25,7 +24,6 @@ async function findBySlug(slug) {
   return poll;
 }
 
-// Visão pública: nada de parciais enquanto estiver aberta (evita efeito âncora)
 export async function getPublic(slug) {
   const poll = await findBySlug(slug);
   const closed = isClosed(poll);

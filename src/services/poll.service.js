@@ -3,7 +3,6 @@ import { prisma } from '../lib/prisma.js';
 import { AppError } from '../lib/AppError.js';
 import { getResult, isClosed } from './vote.service.js';
 
-// O criador vê quantos votaram, mas o resultado só aparece depois de encerrar
 async function format(poll) {
   const closed = isClosed(poll);
   return {
@@ -31,7 +30,7 @@ export async function create(userId, { question, optionA, optionB, duration }) {
       question,
       optionA,
       optionB,
-      slug: randomBytes(12).toString('base64url'), // link aleatório, não derivado do id
+      slug: randomBytes(12).toString('base64url'),
       expiresAt: new Date(Date.now() + duration * 60 * 1000),
       userId,
     },

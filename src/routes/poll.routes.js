@@ -6,7 +6,7 @@ import { createPollSchema, updatePollSchema } from '../schemas.js';
 
 const router = Router();
 
-router.use(auth); // todas as rotas do criador são protegidas
+router.use(auth);
 
 router.post('/', validate(createPollSchema), ctrl.create);
 router.get('/', ctrl.list);

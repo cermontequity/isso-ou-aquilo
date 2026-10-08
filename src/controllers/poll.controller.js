@@ -6,5 +6,5 @@ export const getById = async (req, res) => res.json(await pollService.getById(re
 export const update = async (req, res) => res.json(await pollService.update(req.userId, req.params.id, req.body));
 export const remove = async (req, res) => {
   await pollService.remove(req.userId, req.params.id);
-  res.status(204).end();
+  res.json({ message: 'Votação deletada com sucesso' });
 };

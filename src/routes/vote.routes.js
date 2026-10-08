@@ -6,7 +6,6 @@ import { voteSchema } from '../schemas.js';
 
 const router = Router();
 
-// Rotas públicas: quem vota não precisa de conta, só do link
 router.get('/:slug', ctrl.getPublic);
 router.post('/:slug/vote', voteLimiter, validate(voteSchema), ctrl.castVote);
 

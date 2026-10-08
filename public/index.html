@@ -11,7 +11,6 @@
   <h1><span class="a">Isso</span> ou <span class="b">Aquilo</span></h1>
   <p class="muted">Duas opções, voto anônimo, resultado só no fim.</p>
 
-  <!-- Login / Cadastro -->
   <section id="auth" class="card">
     <form id="authForm">
       <input id="name" placeholder="Seu nome" class="hidden" />
@@ -23,7 +22,6 @@
     </form>
   </section>
 
-  <!-- Painel do criador -->
   <section id="panel" class="hidden">
     <div class="row" style="margin-top:20px">
       <span id="hello"></span>
@@ -117,7 +115,7 @@
       const polls = await api('/polls', { token });
       $('polls').innerHTML = polls.map(pollHtml).join('') || '<p class="muted card">Nenhuma votação ainda.</p>';
     } catch (err) {
-      if (err.status === 401) $('logout').click(); // token expirou
+      if (err.status === 401) $('logout').click();
     }
   }
 
@@ -142,7 +140,7 @@
       await navigator.clipboard.writeText(link);
       btn.textContent = 'Copiado!';
     } catch {
-      prompt('Copie o link:', link); // clipboard só funciona em https/localhost
+      prompt('Copie o link:', link);
     }
   }
 
@@ -152,7 +150,6 @@
     loadPolls();
   }
 
-  // Relógio local a cada 1s; recarrega do servidor a cada 5s (contagem de votos)
   setInterval(() => {
     document.querySelectorAll('[data-expires]').forEach((el) => {
       el.textContent = timeLeft(el.dataset.expires);

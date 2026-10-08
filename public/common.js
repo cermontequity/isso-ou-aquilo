@@ -1,4 +1,3 @@
-// Helpers compartilhados entre o painel e a página de votação
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 

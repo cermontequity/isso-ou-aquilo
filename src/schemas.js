@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-z.config(z.locales.pt()); // mensagens de validação em português
+z.config(z.locales.pt());
 
 export const DURATIONS = [5, 10, 15, 30, 60];
 

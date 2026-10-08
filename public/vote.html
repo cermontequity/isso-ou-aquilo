@@ -17,8 +17,6 @@
   const slug = location.pathname.split('/').pop();
   const app = document.getElementById('app');
 
-  // Token anônimo por votação: impede votar duas vezes sem identificar ninguém.
-  // getRandomValues funciona mesmo sem https (ex: celular acessando pelo IP da rede)
   const tokenKey = `voter:${slug}`;
   if (!localStorage.getItem(tokenKey)) {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -72,13 +70,12 @@
       await api(`/p/${slug}/vote`, { method: 'POST', body: { choice, voterToken } });
       localStorage.setItem(votedKey, '1');
     } catch (err) {
-      if (err.status === 409) localStorage.setItem(votedKey, '1'); // já tinha votado
+      if (err.status === 409) localStorage.setItem(votedKey, '1');
       else return (document.getElementById('voteError').textContent = err.message);
     }
     render();
   }
 
-  // Contagem regressiva; ao zerar busca o resultado
   setInterval(() => {
     document.querySelectorAll('[data-expires]').forEach((el) => {
       el.textContent = timeLeft(el.dataset.expires);
